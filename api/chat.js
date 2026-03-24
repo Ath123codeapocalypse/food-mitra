@@ -3,28 +3,26 @@ export default async function handler(req, res) {
     const { message } = req.body;
 
     try {
-      // Access your Groq API key from environment variables
       const apiKey = process.env.GROQ_API_KEY;
 
-      // Call Groq API (replace with the correct endpoint if different)
-     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "Authorization": `Bearer ${apiKey}`
-  },
-  body: JSON.stringify({
-    model: "llama3-8b-8192",   // or whichever Groq model you want
-    messages: [
-      { role: "system", content: "You are a helpful chatbot." },
-      { role: "user", content: message }
-    ],
-    max_tokens: 200
-  })
-});
+      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          model: "llama3-8b-8192",   // adjust to whichever Groq model you want
+          messages: [
+            { role: "system", content: "You are a helpful chatbot." },
+            { role: "user", content: message }
+          ],
+          max_tokens: 200
+        })
+      });
+
       const data = await response.json();
 
-      // Send back Groq’s reply
       res.status(200).json({ reply: data.choices[0].message.content });
     } catch (error) {
       console.error("Groq API error:", error);
