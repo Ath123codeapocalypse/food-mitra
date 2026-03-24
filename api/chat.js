@@ -1,5 +1,42 @@
-export default async function handler(req, res) {
+I see what you’re building — a simple API route handler that proxies requests to Groq’s LLaMA model. Nicely structured! There are just a couple of small issues in your code that will cause errors:
 
+### 🔧 Issues
+1. **Authorization header formatting**  
+   You wrote:
+   ```js
+   "Authorization": Bearer ${process.env.GROQ_API_KEY},
+   ```
+   This will throw a syntax error. It should be a string with template literals:
+   ```js
+   "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+   ```
+
+2. **Response parsing**  
+   Groq’s API returns completions in the format:
+   ```json
+   {
+     "choices": [
+       {
+         "message": {
+           "role": "assistant",
+           "content": "..."
+         }
+       }
+     ]
+   }
+   ```
+   Your code correctly checks `data.choices`, but make sure you access `data.choices[0].message.content`.
+
+3. **Error handling**  
+   Right now you return the raw `data` object if `choices` is missing. It might be cleaner to log it and send a simpler error message back to the client.
+
+---
+
+### ✅ Fixed Version
+Here’s a corrected version of your handler:
+
+```js
+export default async function handler(req, res) {
   // ✅ CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -23,7 +60,7 @@ export default async function handler(req, res) {
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": Bearer ${process.env.GROQ_API_KEY},
+        "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
@@ -37,8 +74,9 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    if (!data.choices) {
-      return res.status(500).json({ error: data });
+    if (!data.choices || !data.choices[0]?.message?.content) {
+      console.error("Groq API error:", data);
+      return res.status(500).json({ error: "Invalid response from Groq API" });
     }
 
     res.status(200).json({
@@ -50,3 +88,4 @@ export default async function handler(req, res) {
     res.status(500).json({ error: "Server error" });
   }
 }
+
